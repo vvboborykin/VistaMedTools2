@@ -12,6 +12,7 @@ object BaseForm: TBaseForm
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
+  ShowHint = True
   PixelsPerInch = 96
   TextHeight = 19
   object aclMain: TActionList

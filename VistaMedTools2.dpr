@@ -8,7 +8,8 @@ uses
   BaseOkCancelFormUnit in 'BaseOkCancelFormUnit.pas' {BaseOkCancelForm},
   AboutFormUnit in 'AboutFormUnit.pas' {AboutForm},
   MainFormUnit in 'MainFormUnit.pas' {MainForm},
-  VersionInfoUnit in 'VersionInfoUnit.pas';
+  VersionInfoUnit in 'VersionInfoUnit.pas',
+  BaseChildFormUnit in 'BaseChildFormUnit.pas' {BaseChildForm};
 
 {$R *.res}
 
