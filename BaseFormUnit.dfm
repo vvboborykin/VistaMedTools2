@@ -11,6 +11,7 @@ object BaseForm: TBaseForm
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  Position = poScreenCenter
   PixelsPerInch = 96
   TextHeight = 19
   object aclMain: TActionList
