@@ -33,16 +33,10 @@ type
     procedure actCancelExecute(Sender: TObject);
     procedure actOkExecute(Sender: TObject);
   private
-    FParams: TObject;
-    procedure SetParams(Value: TObject);
   protected
     procedure DoCancel; virtual;
     procedure DoOK; virtual;
-    procedure Init(AParams: TObject); virtual;
   public
-    class function IsOk(AParams: TObject = nil; AAppOwner: Boolean = True):
-        Boolean; virtual;
-    property Params: TObject read FParams write SetParams;
   end;
 
 implementation
@@ -69,37 +63,6 @@ end;
 procedure TBaseOkCancelForm.DoOK;
 begin
   // TODO -cMM: TBaseOkCancelForm.DoOK default body inserted
-end;
-
-procedure TBaseOkCancelForm.Init(AParams: TObject);
-begin
-  Params := AParams;
-end;
-
-class function TBaseOkCancelForm.IsOk(AParams: TObject = nil; AAppOwner:
-    Boolean = True): Boolean;
-var
-  vForm: TBaseOkCancelForm;
-  vOwner: TComponent;
-begin
-  vOwner := nil;
-  if AAppOwner then
-    vOwner := Application;
-  vForm := TBaseOkCancelForm.Create(vOwner);
-  try
-    vForm.Init(AParams);
-    Result := IsPositiveResult(vForm.ShowModal);
-  finally
-    vForm.Free;
-  end;
-end;
-
-procedure TBaseOkCancelForm.SetParams(Value: TObject);
-begin
-  if FParams <> Value then
-  begin
-    FParams := Value;
-  end;
 end;
 
 end.

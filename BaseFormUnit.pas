@@ -18,13 +18,52 @@ type
   TBaseForm = class(TForm)
     aclMain: TActionList;
   private
-    { Private declarations }
+    FParams: TObject;
+    procedure SetParams(Value: TObject);
+  protected
+    //1 инициализация формы параметрыми до отображения
+    procedure Init(AParams: TObject); virtual;
   public
-    { Public declarations }
+    //1 вывести форму модально и определить положительный ли результат вывода вормы
+    class function IsOk(AParams: TObject = nil; AAppOwner: Boolean = True):
+        Boolean; virtual;
+    //1 параметры формы
+    property Params: TObject read FParams write SetParams;
   end;
 
 implementation
 
 {$R *.dfm}
+
+procedure TBaseForm.Init(AParams: TObject);
+begin
+  Params := AParams;
+end;
+
+class function TBaseForm.IsOk(AParams: TObject = nil; AAppOwner: Boolean =
+    True): Boolean;
+var
+  vForm: TBaseForm;
+  vOwner: TComponent;
+begin
+  vOwner := nil;
+  if AAppOwner then
+    vOwner := Application;
+  vForm := Self.Create(vOwner);
+  try
+    vForm.Init(AParams);
+    Result := IsPositiveResult(vForm.ShowModal);
+  finally
+    vForm.Free;
+  end;
+end;
+
+procedure TBaseForm.SetParams(Value: TObject);
+begin
+  if FParams <> Value then
+  begin
+    FParams := Value;
+  end;
+end;
 
 end.
