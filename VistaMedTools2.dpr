@@ -9,7 +9,11 @@ uses
   AboutFormUnit in 'AboutFormUnit.pas' {AboutForm},
   MainFormUnit in 'MainFormUnit.pas' {MainForm},
   VersionInfoUnit in 'VersionInfoUnit.pas',
-  BaseChildFormUnit in 'BaseChildFormUnit.pas' {BaseChildForm};
+  BaseChildFormUnit in 'BaseChildFormUnit.pas' {BaseChildForm},
+  OptionsUnit in 'OptionsUnit.pas',
+  DataUnit in 'DataUnit.pas' {Data: TDataModule},
+  DJson in 'DJSON-main\src\DJson.pas',
+  JsonObjectSerilizerUnit in 'JsonObjectSerilizerUnit.pas';
 
 {$R *.res}
 
@@ -18,5 +22,6 @@ begin
   Application.Title := 'Инструменты ВистаМед 2';
   Application.CreateForm(TDevExpressData, DevExpressData);
   Application.CreateForm(TMainForm, MainForm);
+  Application.CreateForm(TData, Data);
   Application.Run;
 end.

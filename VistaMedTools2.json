@@ -1,0 +1,3 @@
+{
+	"CmcoConnectionString": "Provider Name=MySQL;User ID=dbuser;Password=dbpassword;Use Unicode=True;Data Source=MySqlServer;Database=s11;Login Prompt=False"
+}

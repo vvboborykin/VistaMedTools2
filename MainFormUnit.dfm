@@ -1,4 +1,6 @@
 inherited MainForm: TMainForm
+  Left = 543
+  Top = 191
   Width = 884
   Height = 633
   Caption = #1043#1083#1072#1074#1085#1072#1103' '#1092#1086#1088#1084#1072
@@ -23,10 +25,10 @@ inherited MainForm: TMainForm
       Caption = #1056#1072#1073#1086#1090#1072
       Groups = <
         item
-          ToolbarName = 'dxbrHelp'
+          ToolbarName = 'dxbrWindows'
         end
         item
-          ToolbarName = 'dxbrWindows'
+          ToolbarName = 'dxbrHelp'
         end>
       Index = 0
     end
@@ -103,7 +105,7 @@ inherited MainForm: TMainForm
     object dxbrHelp: TdxBar
       Caption = #1057#1087#1088#1072#1074#1082#1072
       CaptionButtons = <>
-      DockedLeft = 0
+      DockedLeft = 171
       DockedTop = 0
       FloatLeft = 323
       FloatTop = 117
@@ -123,7 +125,7 @@ inherited MainForm: TMainForm
     object dxbrWindows: TdxBar
       Caption = #1054#1082#1085#1072
       CaptionButtons = <>
-      DockedLeft = 86
+      DockedLeft = 0
       DockedTop = 0
       FloatLeft = 323
       FloatTop = 117
