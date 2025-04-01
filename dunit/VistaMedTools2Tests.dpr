@@ -14,7 +14,8 @@ uses
   JsonObjectSerilizerUnitTests in 'JsonObjectSerilizerUnitTests.pas',
   JsonObjectSerilizerUnit in '..\JsonObjectSerilizerUnit.pas',
   DJson in '..\DJSON-main\src\DJson.pas',
-  TestObjectUnit in 'TestObjectUnit.pas';
+  TestObjectUnit in 'TestObjectUnit.pas',
+  CryptoServiceUnit in '..\CryptoServiceUnit.pas';
 
 {$R *.RES}
 

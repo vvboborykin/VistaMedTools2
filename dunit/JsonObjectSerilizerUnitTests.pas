@@ -11,6 +11,7 @@ type
   TJsonObjectSerilizerTests = class(TTestCase)
   private
     FFileName: string;
+    FPassword: string;
     FSerializer: TJsonObjectSerilizer;
   protected
     procedure SetUp; override;
@@ -36,6 +37,7 @@ procedure TJsonObjectSerilizerTests.SetUp;
 begin
   inherited;
   FFileName := 'c:\temp\TJsonObjectSerilizerTests_TestSaveObjectStateToFile.json';
+  FPassword := 'Владивосток';
   FSerializer := TJsonObjectSerilizer.Create;
 end;
 
@@ -84,7 +86,7 @@ var
 begin
   vTestObject := TTestObject.CreateObjectForJson;
   try
-    FSerializer.SaveObjectStateToFile(FFileName, vTestObject);
+    FSerializer.SaveObjectStateToFile(FFileName, vTestObject, FPassword);
     CheckTrue(FileExists(FFileName));
   finally
     vTestObject.Free;
@@ -104,7 +106,7 @@ begin
   vStream := TStringStream.Create('');
   vTestObject := TTestObject.CreateObjectForJson;
   try
-    FSerializer.SaveObjectStateToStream(vStream, vTestObject);
+    FSerializer.SaveObjectStateToStream(vStream, vTestObject, FPassword);
     CheckNotEqualsString('', vStream.DataString);
   finally
     vStream.Free;

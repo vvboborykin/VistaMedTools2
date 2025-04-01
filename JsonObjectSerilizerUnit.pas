@@ -102,6 +102,9 @@ type
 
 implementation
 
+uses
+  CryptoServiceUnit;
+
 resourcestring
   SObjectId = 'ObjectId';
   SProperties = 'Properties';
@@ -126,8 +129,7 @@ function TJsonObjectSerilizer.Decrypt(AString, APassword: String): string;
 begin
   Result := AString;
   if APassword <> '' then
-    Result := AString;
-  // TODO -cMM: TJsonObjectSerilizer.Decrypt default body inserted
+    Result := TCryptoService.DecryptString(AString, APassword);
 end;
 
 procedure TJsonObjectSerilizer.DeserializeObjectProp(vObjValue: TObject;
@@ -161,8 +163,7 @@ function TJsonObjectSerilizer.Encrypt(AString, APassword: String): String;
 begin
   Result := AString;
   if APassword <> '' then
-    Result := Result;
-  // TODO -cMM: TJsonObjectSerilizer.Decrypt default body inserted
+    Result := TCryptoService.EncryptString(AString, APassword);
 end;
 
 procedure TJsonObjectSerilizer.LoadCollectionFromJson(AJSONArray: IJSONArray;
@@ -432,7 +433,7 @@ var
 begin
   vFileStream := TFileStream.Create(AFileName, fmCreate, fmShareDenyWrite);
   try
-    SaveObjectStateToStream(vFileStream, AObject);
+    SaveObjectStateToStream(vFileStream, AObject, APassword);
   finally
     vFileStream.Free;
   end;
@@ -449,7 +450,7 @@ begin
   begin
     vJson := JSONBuilder.BuildObject.Build;
     SaveObjectToJson(vJson, AObject);
-    Result := Encrypt(vJson.AsString, APassword)
+    Result := Encrypt(vJson.ToString, APassword)
   end;
 end;
 
@@ -463,6 +464,7 @@ begin
   begin
     vStringStream := TStringStream.Create(SaveObjectStateToJsonString(AObject, APassword));
     try
+      vStringStream.Seek(0, 0);
       AStream.CopyFrom(vStringStream, 0);
     finally
       vStringStream.Free;

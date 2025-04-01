@@ -13,7 +13,8 @@ uses
   OptionsUnit in 'OptionsUnit.pas',
   DataUnit in 'DataUnit.pas' {Data: TDataModule},
   DJson in 'DJSON-main\src\DJson.pas',
-  JsonObjectSerilizerUnit in 'JsonObjectSerilizerUnit.pas';
+  JsonObjectSerilizerUnit in 'JsonObjectSerilizerUnit.pas',
+  CryptoServiceUnit in 'CryptoServiceUnit.pas';
 
 {$R *.res}
 
