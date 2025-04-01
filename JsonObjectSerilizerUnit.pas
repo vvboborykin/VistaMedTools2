@@ -1,7 +1,7 @@
 {*******************************************************
 * Project: VistaMedTools2
 * Unit: JsonObjectSerilizerUnit.pas
-* Description: сериализаторv объекта TPersistent в/из JSON
+* Description: Сервис сохранения/восстановления состояния объекта TPersistent в/из JSON
 *
 * Created: 30.03.2025 20:34:48
 * Copyright (C) 2025 Боборыкин В.В. (bpost@yandex.ru)
@@ -14,8 +14,14 @@ uses
   SysUtils, Classes, Variants, StrUtils, TypInfo, DJson, Contnrs;
 
 type
+  /// <summary>TJsonObjectSerilizer
+  /// Сервис сохранения/восстановления состояния объекта TPersistent в/из JSON
+  /// </summary>
   TJsonObjectSerilizer = class
   private
+    FFixupList: TStringList;
+    procedure DeserializeObjectProp(vObjValue: TObject; vPropJson: IJSONValue;
+        AObject: TPersistent; AProp: PPropInfo);
     procedure LoadCollectionFromJson(AJSONArray: IJSONArray; ACollection:
         TCollection);
     procedure LoadObjectFromJson(AJson: IJSONObject; AObject: TPersistent);
@@ -26,8 +32,8 @@ type
         AProp: PPropInfo);
     function SaveCollectionToJson(AJSONArray: IJSONArray; ACollection:
         TCollection): IJSONArray;
-    function SaveObjectListToJson(AJSONArray: IJSONArray; vObjValue: TObjectList):
-        IJSONArray;
+    function SaveObjectListToJson(AJSONArray: IJSONArray; AObjectList:
+        TObjectList): IJSONArray;
     function SaveObjectToJson(AJsonObj: IJSONObject; AObject: TPersistent):
         IJSONObject;
     function SaveObjectPropToJson(AJsonObj: IJSONObject; AObject: TPersistent;
@@ -35,21 +41,101 @@ type
     function SaveStringsToJson(AJSONArray: IJSONArray; vObjValue: TStrings):
         IJSONArray;
   public
-    //1 загрузить объект из потока JSON
+    constructor Create;
+    destructor Destroy; override;
+    /// <summary>TJsonObjectSerilizer.LoadObjectStateFromStream
+    /// загрузить состояние объекта из потока JSON
+    /// </summary>
+    /// <param name="AStream"> (TStream) поток, содержащий данные JSON</param>
+    /// <param name="AObject"> (TPersistent) объект, состояние которого
+    /// загружается</param>
     procedure LoadObjectStateFromStream(AStream: TStream; AObject: TPersistent);
-    //1 загрузить объект из файла
+    /// <summary>TJsonObjectSerilizer.LoadObjectStateFromFile
+    /// загрузить состояние объекта из файла JSON
+    /// </summary>
+    /// <param name="AFileName"> (String) имя JSON файла</param>
+    /// <param name="AObject"> (TPersistent) объект, состояние которого
+    /// загружается</param>
     procedure LoadObjectStateFromFile(AFileName: String; AObject: TPersistent);
-    //1 сохранить состояние объекта в JSON поток
+    /// <summary>TJsonObjectSerilizer.LoadObjectStateFromJsonString
+    /// загрузить состояние объекта из JSON строки
+    /// </summary>
+    /// <param name="AString"> (String) строка JSON содержащая информацию о  состоянии
+    /// объекта</param>
+    /// <param name="AObject"> (TPersistent) объект, состояние которого
+    /// загружается</param>
+    procedure LoadObjectStateFromJsonString(AString: String; AObject: TPersistent);
+    /// <summary>TJsonObjectSerilizer.SaveObjectStateToStream
+    /// сохранить состояние объекта в JSON поток
+    /// </summary>
+    /// <param name="AStream"> (TStream) поток, в который записывается состояние
+    /// объекта</param>
+    /// <param name="AObject"> (TPersistent) объект, состояние которого
+    /// сохраняется</param>
     procedure SaveObjectStateToStream(AStream: TStream; AObject: TPersistent);
+    /// <summary>TJsonObjectSerilizer.SaveObjectStateToFile
+    /// сохранить объект в JSON файл
+    /// </summary>
+    /// <param name="AFileName"> (String) имя JSON файла, в который сохраняется
+    /// состояние объекта</param>
+    /// <param name="AObject"> (TPersistent) объект, состояние которого
+    /// сохраняется</param>
+    procedure SaveObjectStateToFile(AFileName: String; AObject: TPersistent);
+    /// <summary>TJsonObjectSerilizer.SaveObjectStateToJsonString
+    /// сохранить состояние объекта в JSON строку
+    /// </summary>
+    /// JSON строка содержащая состояние объекта
+    /// <returns> String
+    /// </returns>
+    /// <param name="AObject"> (TPersistent) объект, состояние которого
+    /// сохраняется</param>
+    function SaveObjectStateToJsonString(AObject: TPersistent): String;
   end;
 
 implementation
 
 resourcestring
+  SObjectId = 'ObjectId';
+  SProperties = 'Properties';
   SItems = 'Items';
   SObject = 'Object';
   SClassName = 'ClassName';
 
+
+constructor TJsonObjectSerilizer.Create;
+begin
+  inherited Create;
+  FFixupList := TStringList.Create();
+end;
+
+destructor TJsonObjectSerilizer.Destroy;
+begin
+  FreeAndNil(FFixupList);
+  inherited Destroy;
+end;
+
+procedure TJsonObjectSerilizer.DeserializeObjectProp(vObjValue: TObject;
+    vPropJson: IJSONValue; AObject: TPersistent; AProp: PPropInfo);
+var
+  vClass: TClass;
+  vIndexFixup: Integer;
+  vObj: IJSONObject;
+begin
+  vObj := vPropJson.AsObject;
+  if (vObjValue = nil) then
+  begin
+    vIndexFixup := FFixupList.IndexOf(vObj[SObjectId].AsString);
+    if vIndexFixup >= 0 then
+      vObjValue := FFixupList.Objects[vIndexFixup];
+    vClass := FindClass(vObj[SClassName].AsString);
+    vObjValue := TPersistentClass(vClass).Create;
+    SetObjectProp(AObject, AProp, vObjValue);
+    FFixupList.AddObject(vObj[SObjectId], vObjValue);
+  end;
+  
+  if vObjValue <> nil then
+    LoadObjectFromJson(vPropJson.AsObject, vObjValue as TPersistent);
+end;
 
 procedure TJsonObjectSerilizer.LoadCollectionFromJson(AJSONArray: IJSONArray;
     ACollection: TCollection);
@@ -72,12 +158,14 @@ procedure TJsonObjectSerilizer.LoadObjectFromJson(AJson: IJSONObject; AObject:
     TPersistent);
 var
   I: Integer;
+  vJSONProperties: IJSONObject;
   vPropCount: Integer;
   vPropList: PPropList;
 begin
+  vJSONProperties := AJson[SProperties].AsObject;
   vPropCount := GetPropList(AObject.ClassInfo, vPropList);
   for I := 0 to vPropCount-1 do
-    LoadObjectPropFromJson(AJson, AObject, vPropList[I]);
+    LoadObjectPropFromJson(vJSONProperties, AObject, vPropList[I]);
 end;
 
 procedure TJsonObjectSerilizer.LoadObjectListFromJson(AJSONArray: IJSONArray;
@@ -94,16 +182,19 @@ begin
     vClassName := vCurrentObjectJson[SClassName].AsString;
     vNewObject := TPersistentClass(FindClass(vClassName)).Create;
     AObjectList.Add(vNewObject);
-    LoadObjectFromJson(vCurrentObjectJson[SObject].AsObject, vNewObject);
+    LoadObjectFromJson(vCurrentObjectJson.AsObject, vNewObject);
   end;
 end;
 
 procedure TJsonObjectSerilizer.LoadObjectPropFromJson(AJsonObj: IJSONObject;
     AObject: TPersistent; AProp: PPropInfo);
 var
+  vClass: TClass;
+  vObjectId: Integer;
   vObjValue: TObject;
   vPropJson: IJSONValue;
   vPropName: string;
+  vTypeData: PTypeData;
   vWideString: WideString;
 begin
   vPropName := AProp.Name;
@@ -126,9 +217,8 @@ begin
       tkClass:
       begin
         vObjValue := GetObjectProp(AObject, AProp);
-        if vObjValue is TPersistent then
-          LoadObjectFromJson(vPropJson.AsObject, vObjValue as TPersistent)
-        else
+        vTypeData := GetTypeData(AProp.PropType^);
+
         if vObjValue is TStrings then
           LoadStringsFromJson(vPropJson.AsArray, vObjValue as TStrings)
         else
@@ -137,6 +227,21 @@ begin
         else
         if vObjValue is TCollection then
           LoadCollectionFromJson(vPropJson.AsArray, vObjValue as TCollection)
+        else
+        if vTypeData.ClassType.InheritsFrom(TPersistent) then
+        begin
+          (*TODO: extracted code
+          if (vObjValue = nil) then
+          begin
+            vClass := FindClass(vPropJson.AsObject[SClassName].AsString);
+            vObjValue := TPersistentClass(vClass).Create;
+            SetObjectProp(AObject, AProp, vObjValue);
+          end;
+          if vObjValue <> nil then
+            LoadObjectFromJson(vPropJson.AsObject, vObjValue as TPersistent);
+          *)
+          DeserializeObjectProp(vObjValue, vPropJson, AObject, AProp);
+        end;
       end;
     end;
 
@@ -153,6 +258,20 @@ begin
     LoadObjectStateFromStream(vFileStream, AObject);
   finally
     vFileStream.Free;
+  end;
+end;
+
+procedure TJsonObjectSerilizer.LoadObjectStateFromJsonString(AString: String;
+    AObject: TPersistent);
+var
+  vStream: TStringStream;
+begin
+  vStream := TStringStream.Create(AString);
+  vStream.Seek(0, 0);
+  try
+    LoadObjectStateFromStream(vStream, AObject);
+  finally
+    vStream.Free;
   end;
 end;
 
@@ -191,30 +310,28 @@ begin
     if (vItem <> nil) and (vItem is TPersistent) then
     begin
       vJSONObject := JSONBuilder.BuildObject.Build;
-      vJSONObject.Add(SClassName, vItem.ClassName);
-      vJSONObject.Add(SObject, SaveObjectToJson(vJSONObject, vItem as TPersistent));
       AJSONArray.Add(vJSONObject);
+      SaveObjectToJson(vJSONObject, vItem as TPersistent);
     end;
   end;
 end;
 
 function TJsonObjectSerilizer.SaveObjectListToJson(AJSONArray: IJSONArray;
-    vObjValue: TObjectList): IJSONArray;
+    AObjectList: TObjectList): IJSONArray;
 var
   I: Integer;
   vItem: TObject;
   vJSONObject: IJSONObject;
 begin
   Result := AJSONArray;
-  for I := 0 to vObjValue.Count-1 do
+  for I := 0 to AObjectList.Count-1 do
   begin
-    vItem := vObjValue[I];
+    vItem := AObjectList[I];
     if (vItem <> nil) and (vItem is TPersistent) then
     begin
       vJSONObject := JSONBuilder.BuildObject.Build;
-      vJSONObject.Add(SClassName, vItem.ClassName);
-      vJSONObject.Add(SObject, SaveObjectToJson(vJSONObject, vItem as TPersistent));
       AJSONArray.Add(vJSONObject);
+      SaveObjectToJson(vJSONObject, vItem as TPersistent);
     end;
   end;
 end;
@@ -247,13 +364,6 @@ begin
       vObjValue := GetObjectProp(AObject, AProp);
       if vObjValue <> nil then
       begin
-        if vObjValue is TPersistent then
-        begin
-          AJsonObj.Add(vPropName,
-            SaveObjectPropToJson(JSONBuilder.BuildObject.Build,
-              vObjValue as TPersistent, AProp));
-        end
-        else
         if vObjValue is TStrings then
         begin
           AJsonObj.Add(vPropName,
@@ -273,9 +383,44 @@ begin
           AJsonObj.Add(vPropName,
             SaveCollectionToJson(JSONBuilder.BuildArray.Build,
               vObjValue as TCollection));
-        end;
+        end
+        else
+        if vObjValue is TPersistent then
+        begin
+          AJsonObj.Add(vPropName,
+            SaveObjectToJson(JSONBuilder.BuildObject.Build,
+              vObjValue as TPersistent));
+        end
+        else;
       end;
     end;
+  end;
+end;
+
+procedure TJsonObjectSerilizer.SaveObjectStateToFile(AFileName: String;
+    AObject: TPersistent);
+var
+  vFileStream: TFileStream;
+begin
+  vFileStream := TFileStream.Create(AFileName, fmCreate, fmShareDenyWrite);
+  try
+    SaveObjectStateToStream(vFileStream, AObject);
+  finally
+    vFileStream.Free;
+  end;
+end;
+
+function TJsonObjectSerilizer.SaveObjectStateToJsonString(AObject:
+    TPersistent): String;
+var
+  vStream: TStringStream;
+begin
+  vStream := TStringStream.Create('');
+  try
+    SaveObjectStateToStream(vStream, AObject);
+    Result := vStream.DataString;
+  finally
+    vStream.Free;
   end;
 end;
 
@@ -296,13 +441,18 @@ function TJsonObjectSerilizer.SaveObjectToJson(AJsonObj: IJSONObject; AObject:
     TPersistent): IJSONObject;
 var
   I: Integer;
+  vJSONProperties: IJSONObject;
   vPropCount: Integer;
   vPropList: PPropList;
 begin
   Result := AJsonObj;
+  AJsonObj.Add(SClassName, AObject.ClassName);
+  AJsonObj.Add(SObjectId, IntToStr(Integer(AObject)));
+  vJSONProperties := JSONBuilder.BuildObject.Build;
+  AJsonObj.Add(SProperties, vJSONProperties);
   vPropCount := GetPropList(AObject.ClassInfo, vPropList);
   for I := 0 to vPropCount-1 do
-    SaveObjectPropToJson(AJsonObj, AObject, vPropList[I]);
+    SaveObjectPropToJson(vJSONProperties, AObject, vPropList[I]);
 end;
 
 function TJsonObjectSerilizer.SaveStringsToJson(AJSONArray: IJSONArray;

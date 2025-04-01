@@ -1,7 +1,7 @@
 object Data: TData
   OldCreateOrder = False
-  Left = 373
-  Top = 117
+  Left = 375
+  Top = 118
   Height = 422
   Width = 581
   object conCmco: TUniConnection

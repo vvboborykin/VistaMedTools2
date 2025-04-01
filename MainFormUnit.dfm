@@ -1,12 +1,13 @@
 inherited MainForm: TMainForm
-  Left = 543
-  Top = 191
+  Left = 545
+  Top = 143
   Width = 884
   Height = 633
   Caption = #1043#1083#1072#1074#1085#1072#1103' '#1092#1086#1088#1084#1072
   Color = clAppWorkSpace
   FormStyle = fsMDIForm
   WindowState = wsMaximized
+  OnClick = FormClick
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 19
