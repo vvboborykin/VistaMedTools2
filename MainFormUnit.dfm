@@ -117,8 +117,8 @@ inherited MainForm: TMainForm
           Visible = True
           ItemName = 'btnAbout'
         end>
-      OneOnRow = True
-      Row = 1
+      OneOnRow = False
+      Row = 0
       UseOwnFont = False
       Visible = True
       WholeRow = False
@@ -157,7 +157,7 @@ inherited MainForm: TMainForm
           Visible = True
           ItemName = 'btn6'
         end>
-      OneOnRow = True
+      OneOnRow = False
       Row = 0
       UseOwnFont = False
       Visible = True

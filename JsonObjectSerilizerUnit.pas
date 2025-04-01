@@ -20,8 +20,10 @@ type
   TJsonObjectSerilizer = class
   private
     FFixupList: TStringList;
+    function Decrypt(AString, APassword: String): string;
     procedure DeserializeObjectProp(vObjValue: TObject; vPropJson: IJSONValue;
         AObject: TPersistent; AProp: PPropInfo);
+    function Encrypt(AString, APassword: String): String;
     procedure LoadCollectionFromJson(AJSONArray: IJSONArray; ACollection:
         TCollection);
     procedure LoadObjectFromJson(AJson: IJSONObject; AObject: TPersistent);
@@ -49,14 +51,16 @@ type
     /// <param name="AStream"> (TStream) поток, содержащий данные JSON</param>
     /// <param name="AObject"> (TPersistent) объект, состояние которого
     /// загружается</param>
-    procedure LoadObjectStateFromStream(AStream: TStream; AObject: TPersistent);
+    procedure LoadObjectStateFromStream(AStream: TStream; AObject: TPersistent;
+        APassword: string = '');
     /// <summary>TJsonObjectSerilizer.LoadObjectStateFromFile
     /// загрузить состояние объекта из файла JSON
     /// </summary>
     /// <param name="AFileName"> (String) имя JSON файла</param>
     /// <param name="AObject"> (TPersistent) объект, состояние которого
     /// загружается</param>
-    procedure LoadObjectStateFromFile(AFileName: String; AObject: TPersistent);
+    procedure LoadObjectStateFromFile(AFileName: String; AObject: TPersistent;
+        APassword: string = '');
     /// <summary>TJsonObjectSerilizer.LoadObjectStateFromJsonString
     /// загрузить состояние объекта из JSON строки
     /// </summary>
@@ -64,7 +68,8 @@ type
     /// объекта</param>
     /// <param name="AObject"> (TPersistent) объект, состояние которого
     /// загружается</param>
-    procedure LoadObjectStateFromJsonString(AString: String; AObject: TPersistent);
+    procedure LoadObjectStateFromJsonString(AString: String; AObject: TPersistent;
+        APassword: string = '');
     /// <summary>TJsonObjectSerilizer.SaveObjectStateToStream
     /// сохранить состояние объекта в JSON поток
     /// </summary>
@@ -72,7 +77,8 @@ type
     /// объекта</param>
     /// <param name="AObject"> (TPersistent) объект, состояние которого
     /// сохраняется</param>
-    procedure SaveObjectStateToStream(AStream: TStream; AObject: TPersistent);
+    procedure SaveObjectStateToStream(AStream: TStream; AObject: TPersistent;
+        APassword: string = '');
     /// <summary>TJsonObjectSerilizer.SaveObjectStateToFile
     /// сохранить объект в JSON файл
     /// </summary>
@@ -80,7 +86,8 @@ type
     /// состояние объекта</param>
     /// <param name="AObject"> (TPersistent) объект, состояние которого
     /// сохраняется</param>
-    procedure SaveObjectStateToFile(AFileName: String; AObject: TPersistent);
+    procedure SaveObjectStateToFile(AFileName: String; AObject: TPersistent;
+        APassword: string = '');
     /// <summary>TJsonObjectSerilizer.SaveObjectStateToJsonString
     /// сохранить состояние объекта в JSON строку
     /// </summary>
@@ -89,7 +96,8 @@ type
     /// </returns>
     /// <param name="AObject"> (TPersistent) объект, состояние которого
     /// сохраняется</param>
-    function SaveObjectStateToJsonString(AObject: TPersistent): String;
+    function SaveObjectStateToJsonString(AObject: TPersistent; APassword: string =
+        ''): String;
   end;
 
 implementation
@@ -114,6 +122,14 @@ begin
   inherited Destroy;
 end;
 
+function TJsonObjectSerilizer.Decrypt(AString, APassword: String): string;
+begin
+  Result := AString;
+  if APassword <> '' then
+    Result := AString;
+  // TODO -cMM: TJsonObjectSerilizer.Decrypt default body inserted
+end;
+
 procedure TJsonObjectSerilizer.DeserializeObjectProp(vObjValue: TObject;
     vPropJson: IJSONValue; AObject: TPersistent; AProp: PPropInfo);
 var
@@ -122,19 +138,31 @@ var
   vObj: IJSONObject;
 begin
   vObj := vPropJson.AsObject;
+  
   if (vObjValue = nil) then
   begin
     vIndexFixup := FFixupList.IndexOf(vObj[SObjectId].AsString);
     if vIndexFixup >= 0 then
-      vObjValue := FFixupList.Objects[vIndexFixup];
-    vClass := FindClass(vObj[SClassName].AsString);
-    vObjValue := TPersistentClass(vClass).Create;
+      vObjValue := FFixupList.Objects[vIndexFixup]
+    else
+    begin
+      vClass := FindClass(vObj[SClassName].AsString);
+      vObjValue := TPersistentClass(vClass).Create;
+      FFixupList.AddObject(vObj[SObjectId].AsString, vObjValue);
+    end;
     SetObjectProp(AObject, AProp, vObjValue);
-    FFixupList.AddObject(vObj[SObjectId], vObjValue);
   end;
   
-  if vObjValue <> nil then
-    LoadObjectFromJson(vPropJson.AsObject, vObjValue as TPersistent);
+  if (vObjValue <> nil) then
+    LoadObjectFromJson(vObj, vObjValue as TPersistent);
+end;
+
+function TJsonObjectSerilizer.Encrypt(AString, APassword: String): String;
+begin
+  Result := AString;
+  if APassword <> '' then
+    Result := Result;
+  // TODO -cMM: TJsonObjectSerilizer.Decrypt default body inserted
 end;
 
 procedure TJsonObjectSerilizer.LoadCollectionFromJson(AJSONArray: IJSONArray;
@@ -189,8 +217,6 @@ end;
 procedure TJsonObjectSerilizer.LoadObjectPropFromJson(AJsonObj: IJSONObject;
     AObject: TPersistent; AProp: PPropInfo);
 var
-  vClass: TClass;
-  vObjectId: Integer;
   vObjValue: TObject;
   vPropJson: IJSONValue;
   vPropName: string;
@@ -249,41 +275,43 @@ begin
 end;
 
 procedure TJsonObjectSerilizer.LoadObjectStateFromFile(AFileName: String;
-    AObject: TPersistent);
+    AObject: TPersistent; APassword: string = '');
 var
   vFileStream: TFileStream;
 begin
   vFileStream := TFileStream.Create(AFileName, fmOpenRead, fmShareDenyWrite);
   try
-    LoadObjectStateFromStream(vFileStream, AObject);
+    LoadObjectStateFromStream(vFileStream, AObject, APassword);
   finally
     vFileStream.Free;
   end;
 end;
 
 procedure TJsonObjectSerilizer.LoadObjectStateFromJsonString(AString: String;
-    AObject: TPersistent);
-var
-  vStream: TStringStream;
-begin
-  vStream := TStringStream.Create(AString);
-  vStream.Seek(0, 0);
-  try
-    LoadObjectStateFromStream(vStream, AObject);
-  finally
-    vStream.Free;
-  end;
-end;
-
-procedure TJsonObjectSerilizer.LoadObjectStateFromStream(AStream: TStream;
-    AObject: TPersistent);
+    AObject: TPersistent; APassword: string = '');
 var
   vJson: IJSONObject;
 begin
-  if (AStream <> nil) and (AObject <> nil) then
+  FFixupList.Clear;
+  if (AObject <> nil) then
   begin
-    vJson := TJSONReader.ReadFromStream(AStream).AsObject;
+    vJson := TJSONReader.Read(Decrypt(AString, APassword)).AsObject;
     LoadObjectFromJson(vJson, AObject);
+  end;
+end;
+
+
+procedure TJsonObjectSerilizer.LoadObjectStateFromStream(AStream: TStream;
+    AObject: TPersistent; APassword: string = '');
+var
+  vStream: TStringStream;
+begin
+  vStream := TStringStream.Create('');
+  try
+    vStream.CopyFrom(AStream, 0);
+    LoadObjectStateFromJsonString(vStream.DataString, AObject, APassword);
+  finally
+    vStream.Free;
   end;
 end;
 
@@ -398,7 +426,7 @@ begin
 end;
 
 procedure TJsonObjectSerilizer.SaveObjectStateToFile(AFileName: String;
-    AObject: TPersistent);
+    AObject: TPersistent; APassword: string = '');
 var
   vFileStream: TFileStream;
 begin
@@ -410,30 +438,35 @@ begin
   end;
 end;
 
-function TJsonObjectSerilizer.SaveObjectStateToJsonString(AObject:
-    TPersistent): String;
+function TJsonObjectSerilizer.SaveObjectStateToJsonString(AObject: TPersistent;
+    APassword: string = ''): String;
 var
-  vStream: TStringStream;
+  vJson: IJSONObject;
 begin
-  vStream := TStringStream.Create('');
-  try
-    SaveObjectStateToStream(vStream, AObject);
-    Result := vStream.DataString;
-  finally
-    vStream.Free;
+  Result := '';
+  FFixupList.Clear;
+  if (AObject <> nil) then
+  begin
+    vJson := JSONBuilder.BuildObject.Build;
+    SaveObjectToJson(vJson, AObject);
+    Result := Encrypt(vJson.AsString, APassword)
   end;
 end;
 
 procedure TJsonObjectSerilizer.SaveObjectStateToStream(AStream: TStream;
-    AObject: TPersistent);
+    AObject: TPersistent; APassword: string = '');
 var
-  vJson: IJSONObject;
+  vStringStream: TStringStream;
 begin
+  FFixupList.Clear;
   if (AStream <> nil) and (AObject <> nil) then
   begin
-    vJson := JSONBuilder.BuildObject.Build;
-    SaveObjectToJson(vJson, AObject);
-    TJSONWriter.WriteToStream(vJson, AStream);
+    vStringStream := TStringStream.Create(SaveObjectStateToJsonString(AObject, APassword));
+    try
+      AStream.CopyFrom(vStringStream, 0);
+    finally
+      vStringStream.Free;
+    end;
   end;
 end;
 
@@ -442,17 +475,23 @@ function TJsonObjectSerilizer.SaveObjectToJson(AJsonObj: IJSONObject; AObject:
 var
   I: Integer;
   vJSONProperties: IJSONObject;
+  vObjectId: string;
   vPropCount: Integer;
   vPropList: PPropList;
 begin
   Result := AJsonObj;
   AJsonObj.Add(SClassName, AObject.ClassName);
-  AJsonObj.Add(SObjectId, IntToStr(Integer(AObject)));
-  vJSONProperties := JSONBuilder.BuildObject.Build;
-  AJsonObj.Add(SProperties, vJSONProperties);
-  vPropCount := GetPropList(AObject.ClassInfo, vPropList);
-  for I := 0 to vPropCount-1 do
-    SaveObjectPropToJson(vJSONProperties, AObject, vPropList[I]);
+  vObjectId := IntToStr(Integer(AObject));
+  AJsonObj.Add(SObjectId, vObjectId);
+  if FFixupList.IndexOf(vObjectId) < 0 then
+  begin
+    FFixupList.Add(vObjectId);
+    vJSONProperties := JSONBuilder.BuildObject.Build;
+    AJsonObj.Add(SProperties, vJSONProperties);
+    vPropCount := GetPropList(AObject.ClassInfo, vPropList);
+    for I := 0 to vPropCount-1 do
+      SaveObjectPropToJson(vJSONProperties, AObject, vPropList[I]);
+  end;
 end;
 
 function TJsonObjectSerilizer.SaveStringsToJson(AJSONArray: IJSONArray;
