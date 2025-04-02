@@ -111,7 +111,7 @@ AutoIncBuild=1
 MajorVer=2
 MinorVer=0
 Release=0
-Build=1
+Build=2
 Debug=0
 PreRelease=0
 Special=0
@@ -120,7 +120,15 @@ DLL=0
 Locale=1049
 CodePage=1251
 [Version Info Keys]
-FileVersion=2.0.0.1
+CompanyName=
+FileDescription=
+FileVersion=2.0.0.2
+InternalName=
+LegalCopyright=
+LegalTrademarks=
+OriginalFilename=
+ProductName=
+ProductVersion=1.0.0.0
 [Excluded Packages]
 C:\Users\bpost\Documents\Delphi\TextGenDel\Lib\D7\TextGenDelD7.bpl=Text Generator for Delphi
 C:\Users\bpost\Documents\Delphi\TextGenDel\Lib\D7\TextGenDelFastScriptD7.bpl=Text Generator for Delphi FastScript engine component

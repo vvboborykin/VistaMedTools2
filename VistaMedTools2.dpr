@@ -10,7 +10,8 @@ uses
   VersionInfoUnit in 'VersionInfoUnit.pas',
   CryptoServiceUnit in 'CryptoServiceUnit.pas',
   MainFormUnit in 'MainFormUnit.pas' {MainForm},
-  BaseChildFormUnit in 'BaseChildFormUnit.pas' {BaseChildForm};
+  BaseChildFormUnit in 'BaseChildFormUnit.pas' {BaseChildForm},
+  DJson in 'DJson.pas';
 
 {$R *.res}
 
