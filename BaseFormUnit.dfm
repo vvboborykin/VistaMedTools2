@@ -1,6 +1,6 @@
 object BaseForm: TBaseForm
-  Left = 375
-  Top = 118
+  Left = 377
+  Top = 119
   Width = 587
   Height = 416
   Caption = 'BaseForm'

@@ -51,6 +51,7 @@ begin
     vChipher.InitStr(APassword, TDCP_sha512);
     Result := vChipher.DecryptString(ASource);
   finally
+    vChipher.Burn;
     vChipher.Free;
   end;
 end;
@@ -64,8 +65,10 @@ begin
     vChipher.InitStr(APassword, TDCP_sha512);
     Result := vChipher.EncryptString(ASource);
   finally
+    vChipher.Burn;
     vChipher.Free;
   end;
 end;
+
 
 end.

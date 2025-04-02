@@ -3,7 +3,7 @@ unit DataUnit;
 interface
 
 uses
-  SysUtils, Classes, UniProvider, MySQLUniProvider, DB, DBAccess, Uni;
+  SysUtils, UniProvider, MySQLUniProvider, Classes, DB, DBAccess, Uni;
 
 type
   TData = class(TDataModule)

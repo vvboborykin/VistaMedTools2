@@ -7,7 +7,6 @@ inherited MainForm: TMainForm
   Color = clAppWorkSpace
   FormStyle = fsMDIForm
   WindowState = wsMaximized
-  OnClick = FormClick
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 19

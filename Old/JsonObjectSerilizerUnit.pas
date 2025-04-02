@@ -135,7 +135,6 @@ end;
 procedure TJsonObjectSerilizer.DeserializeObjectProp(vObjValue: TObject;
     vPropJson: IJSONValue; AObject: TPersistent; AProp: PPropInfo);
 var
-  vClass: TClass;
   vIndexFixup: Integer;
   vObj: IJSONObject;
 begin
@@ -148,13 +147,12 @@ begin
       vObjValue := FFixupList.Objects[vIndexFixup]
     else
     begin
-      vClass := FindClass(vObj[SClassName].AsString);
-      vObjValue := TPersistentClass(vClass).Create;
+      vObjValue := FindClass(vObj[SClassName].AsString).Create as TPersistent;
       FFixupList.AddObject(vObj[SObjectId].AsString, vObjValue);
     end;
-    SetObjectProp(AObject, AProp, vObjValue);
   end;
-  
+  SetObjectProp(AObject, AProp, vObjValue);
+
   if (vObjValue <> nil) then
     LoadObjectFromJson(vObj, vObjValue as TPersistent);
 end;
@@ -188,13 +186,24 @@ procedure TJsonObjectSerilizer.LoadObjectFromJson(AJson: IJSONObject; AObject:
 var
   I: Integer;
   vJSONProperties: IJSONObject;
+  vObjIdJson: IJSONValue;
   vPropCount: Integer;
   vPropList: PPropList;
 begin
-  vJSONProperties := AJson[SProperties].AsObject;
-  vPropCount := GetPropList(AObject.ClassInfo, vPropList);
-  for I := 0 to vPropCount-1 do
-    LoadObjectPropFromJson(vJSONProperties, AObject, vPropList[I]);
+  if AJson[SObjectId] <> nil then
+  begin
+    vObjIdJson := AJson[SObjectId];
+    if FFixupList.IndexOf(vObjIdJson.AsString) <0 then
+      FFixupList.AddObject(vObjIdJson.AsString, AObject);
+  end;
+
+  if AJson[SProperties] <> nil then
+  begin
+    vJSONProperties := AJson[SProperties].AsObject;
+    vPropCount := GetPropList(AObject.ClassInfo, vPropList);
+    for I := 0 to vPropCount-1 do
+      LoadObjectPropFromJson(vJSONProperties, AObject, vPropList[I]);
+  end;
 end;
 
 procedure TJsonObjectSerilizer.LoadObjectListFromJson(AJSONArray: IJSONArray;
@@ -203,13 +212,24 @@ var
   I: Integer;
   vClassName: string;
   vCurrentObjectJson: IJSONObject;
+  vFixupIndex: Integer;
   vNewObject: TPersistent;
+  vObjectId: string;
 begin
   for I := 0 to AJSONArray.Count-1 do
   begin
     vCurrentObjectJson := AJSONArray[I].AsObject;
     vClassName := vCurrentObjectJson[SClassName].AsString;
-    vNewObject := TPersistentClass(FindClass(vClassName)).Create;
+    vNewObject := nil;
+    if vCurrentObjectJson[SObjectId] <> nil then
+    begin
+      vObjectId := vCurrentObjectJson[SObjectId].AsString;
+      vFixupIndex := FFixupList.IndexOf(vObjectId);
+      if vFixupIndex >= 0 then
+        vNewObject := FFixupList.Objects[vFixupIndex] as TPersistent;
+    end;
+    if vNewObject = nil then
+      vNewObject := FindClass(vClassName).Create as TPersistentClass;
     AObjectList.Add(vNewObject);
     LoadObjectFromJson(vCurrentObjectJson.AsObject, vNewObject);
   end;
@@ -257,16 +277,6 @@ begin
         else
         if vTypeData.ClassType.InheritsFrom(TPersistent) then
         begin
-          (*TODO: extracted code
-          if (vObjValue = nil) then
-          begin
-            vClass := FindClass(vPropJson.AsObject[SClassName].AsString);
-            vObjValue := TPersistentClass(vClass).Create;
-            SetObjectProp(AObject, AProp, vObjValue);
-          end;
-          if vObjValue <> nil then
-            LoadObjectFromJson(vPropJson.AsObject, vObjValue as TPersistent);
-          *)
           DeserializeObjectProp(vObjValue, vPropJson, AObject, AProp);
         end;
       end;
@@ -291,28 +301,44 @@ end;
 procedure TJsonObjectSerilizer.LoadObjectStateFromJsonString(AString: String;
     AObject: TPersistent; APassword: string = '');
 var
-  vJson: IJSONObject;
+  vStringStream: TStringStream;
 begin
-  FFixupList.Clear;
   if (AObject <> nil) then
   begin
-    vJson := TJSONReader.Read(Decrypt(AString, APassword)).AsObject;
-    LoadObjectFromJson(vJson, AObject);
+    vStringStream := TStringStream.Create(Decrypt(AString, APassword));
+    try
+      LoadObjectStateFromStream(vStringStream, AObject);
+    finally
+      vStringStream.Free;
+    end;
   end;
 end;
-
 
 procedure TJsonObjectSerilizer.LoadObjectStateFromStream(AStream: TStream;
     AObject: TPersistent; APassword: string = '');
 var
-  vStream: TStringStream;
+  vJson: IJSONObject;
+  vString: string;
+  vStringStream: TStringStream;
 begin
-  vStream := TStringStream.Create('');
-  try
-    vStream.CopyFrom(AStream, 0);
-    LoadObjectStateFromJsonString(vStream.DataString, AObject, APassword);
-  finally
-    vStream.Free;
+  FFixupList.Clear;
+  if (AObject <> nil) and (AStream <> nil) then
+  begin
+    vStringStream := TStringStream.Create('');
+    try
+      vStringStream.CopyFrom(AStream, 0);
+      vString := Decrypt(vStringStream.DataString, APassword);
+    finally
+      vStringStream.Free;
+    end;
+
+    vStringStream := TStringStream.Create(AnsiToUtf8(vString));
+    try
+      vJson := TJSONReader.ReadFromStream(vStringStream).AsObject;
+    finally
+      vStringStream.Free;
+    end;
+    LoadObjectFromJson(vJson, AObject);
   end;
 end;
 
@@ -395,23 +421,26 @@ begin
       begin
         if vObjValue is TStrings then
         begin
-          AJsonObj.Add(vPropName,
-            SaveStringsToJson(JSONBuilder.BuildArray.Build,
-              vObjValue as TStrings));
+          if (vObjValue as TStrings).Count > 0 then
+            AJsonObj.Add(vPropName,
+              SaveStringsToJson(JSONBuilder.BuildArray.Build,
+                vObjValue as TStrings));
         end
         else
         if vObjValue is TObjectList then
         begin
-          AJsonObj.Add(vPropName,
-            SaveObjectListToJson(JSONBuilder.BuildArray.Build,
-              vObjValue as TObjectList));
+          if (vObjValue as TObjectList).Count > 0 then
+            AJsonObj.Add(vPropName,
+              SaveObjectListToJson(JSONBuilder.BuildArray.Build,
+                vObjValue as TObjectList));
         end
         else
         if vObjValue is TCollection then
         begin
-          AJsonObj.Add(vPropName,
-            SaveCollectionToJson(JSONBuilder.BuildArray.Build,
-              vObjValue as TCollection));
+          if (vObjValue as TCollection).Count > 0 then
+            AJsonObj.Add(vPropName,
+              SaveCollectionToJson(JSONBuilder.BuildArray.Build,
+                vObjValue as TCollection));
         end
         else
         if vObjValue is TPersistent then
@@ -442,29 +471,42 @@ end;
 function TJsonObjectSerilizer.SaveObjectStateToJsonString(AObject: TPersistent;
     APassword: string = ''): String;
 var
-  vJson: IJSONObject;
+  vStringStream: TStringStream;
 begin
   Result := '';
-  FFixupList.Clear;
   if (AObject <> nil) then
   begin
-    vJson := JSONBuilder.BuildObject.Build;
-    SaveObjectToJson(vJson, AObject);
-    Result := Encrypt(vJson.ToString, APassword)
+    vStringStream := TStringStream.Create('');
+    try
+      SaveObjectStateToStream(vStringStream, AObject, APassword);
+      Result := vStringStream.DataString;
+    finally
+      vStringStream.Free;
+    end;
   end;
 end;
 
 procedure TJsonObjectSerilizer.SaveObjectStateToStream(AStream: TStream;
     AObject: TPersistent; APassword: string = '');
 var
+  vJson: IJSONObject;
+  vString: string;
   vStringStream: TStringStream;
 begin
   FFixupList.Clear;
   if (AStream <> nil) and (AObject <> nil) then
   begin
-    vStringStream := TStringStream.Create(SaveObjectStateToJsonString(AObject, APassword));
+    vStringStream := TStringStream.Create('');
     try
-      vStringStream.Seek(0, 0);
+      vJson := JSONBuilder.BuildObject.Build;
+      SaveObjectToJson(vJson, AObject);
+      TJSONWriter.WriteToStream(vJson, vStringStream);
+      vString := Encrypt(Utf8ToAnsi(vStringStream.DataString), APassword);
+    finally
+      vStringStream.Free;
+    end;
+    vStringStream := TStringStream.Create(vString);
+    try
       AStream.CopyFrom(vStringStream, 0);
     finally
       vStringStream.Free;
@@ -507,3 +549,4 @@ begin
 end;
 
 end.
+

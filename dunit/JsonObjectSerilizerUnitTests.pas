@@ -3,9 +3,7 @@ unit JsonObjectSerilizerUnitTests;
 interface
 
 uses
-  JsonObjectSerilizerUnit,
-  TestFrameWork,
-  Contnrs;
+  JsonObjectSerilizerUnit, TestFrameWork, Contnrs;
 
 type
   TJsonObjectSerilizerTests = class(TTestCase)
@@ -19,25 +17,34 @@ type
   published
     procedure TestCreate;
     procedure TestDestroy;
-    procedure TestLoadObjectStateFromStream;
-    procedure TestLoadObjectStateFromFile;
-    procedure TestLoadObjectStateFromJsonString;
     procedure TestSaveObjectStateToStream;
     procedure TestSaveObjectStateToFile;
     procedure TestSaveObjectStateToJsonString;
+    procedure TestLoadObjectStateFromStream;
+    procedure TestLoadObjectStateFromFile;
+    procedure TestLoadObjectStateFromJsonString;
   end;
 
 implementation
 
-uses SysUtils, Classes, TestObjectUnit;
+uses
+  SysUtils, Classes, TestObjectUnit, StrUtils;
 
 { TJsonObjectSerilizerTests }
+
+const
+  CJsonString = '{"ClassName":"TTestObject","ObjectId":"36582544",' +
+  '"Properties":{"Items":[{"ClassName":"TTestObject","ObjectId":"36582544"},' +
+  '{"ClassName":"TTestObject","ObjectId":"36582612",' +
+  '"Properties":{"Name":"Slave"}}],"Lines":["Один","Два","Три"],' +
+  '"Name":"Master","TestRef":{"ClassName":"TTestObject","ObjectId":"36582612"}}}';
 
 procedure TJsonObjectSerilizerTests.SetUp;
 begin
   inherited;
-  FFileName := 'c:\temp\TJsonObjectSerilizerTests_TestSaveObjectStateToFile.json';
-  FPassword := 'Владивосток';
+  FFileName :=
+    'c:\temp\TJsonObjectSerilizerTests_TestSaveObjectStateToFile.json';
+  FPassword := '';
   FSerializer := TJsonObjectSerilizer.Create;
 end;
 
@@ -66,18 +73,45 @@ begin
 end;
 
 procedure TJsonObjectSerilizerTests.TestLoadObjectStateFromFile;
+var
+  vTestObject: TTestObject;
 begin
-
+  vTestObject := TTestObject.Create;
+  try
+    FSerializer.LoadObjectStateFromFile(FFileName, vTestObject, FPassword);
+    vTestObject.ValidateState(Self);
+  finally
+    vTestObject.Free;
+  end;
 end;
 
 procedure TJsonObjectSerilizerTests.TestLoadObjectStateFromJsonString;
+var
+  vTestObject: TTestObject;
 begin
-
+  vTestObject := TTestObject.Create;
+  try
+    FSerializer.LoadObjectStateFromJsonString(CJsonString, vTestObject, FPassword);
+    vTestObject.ValidateState(Self);
+  finally
+    vTestObject.Free;
+  end;
 end;
 
 procedure TJsonObjectSerilizerTests.TestLoadObjectStateFromStream;
+var
+  vStringStream: TStringStream;
+  vTestObject: TTestObject;
 begin
-
+  vStringStream := TStringStream.Create(CJsonString);
+  vTestObject := TTestObject.Create;
+  try
+    FSerializer.LoadObjectStateFromStream(vStringStream, vTestObject, FPassword);
+    vTestObject.ValidateState(Self);
+  finally
+    vTestObject.Free;
+    vStringStream.Free;
+  end;
 end;
 
 procedure TJsonObjectSerilizerTests.TestSaveObjectStateToFile;
@@ -94,28 +128,43 @@ begin
 end;
 
 procedure TJsonObjectSerilizerTests.TestSaveObjectStateToJsonString;
+var
+  vJsonString: string;
+  vTestObject1: TTestObject;
 begin
-
+  vTestObject1 := TTestObject.CreateObjectForJson;
+  try
+    vJsonString := FSerializer.SaveObjectStateToJsonString(vTestObject1, '');
+    CheckTrue(AnsiContainsText(vJsonString, 'Master'));
+    CheckTrue(AnsiContainsText(vJsonString, 'Slave'));
+    CheckTrue(AnsiContainsText(vJsonString, 'Один'), 'Искажен русский текст');
+  finally
+    vTestObject1.Free;
+  end;
 end;
 
 procedure TJsonObjectSerilizerTests.TestSaveObjectStateToStream;
 var
+  vJsonString: String;
   vStream: TStringStream;
-  vTestObject: TTestObject;
+  vTestObject1: TTestObject;
 begin
   vStream := TStringStream.Create('');
-  vTestObject := TTestObject.CreateObjectForJson;
+  vTestObject1:= TTestObject.CreateObjectForJson;
   try
-    FSerializer.SaveObjectStateToStream(vStream, vTestObject, FPassword);
-    CheckNotEqualsString('', vStream.DataString);
+    FSerializer.SaveObjectStateToStream(vStream, vTestObject1, FPassword);
+    vJsonString := vStream.DataString;
+
+    CheckTrue(AnsiContainsText(vJsonString, 'Master'));
+    CheckTrue(AnsiContainsText(vJsonString, 'Slave'));
+    CheckTrue(AnsiContainsText(vJsonString, 'Один'), 'Искажен русский текст');
   finally
     vStream.Free;
-    vTestObject.Free;
+    vTestObject1.Free;
   end;
 end;
 
 initialization
-
   TestFramework.RegisterTest('JsonObjectSerilizerUnitTests Suite',
     TJsonObjectSerilizerTests.Suite);
 

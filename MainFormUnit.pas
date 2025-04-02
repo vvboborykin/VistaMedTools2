@@ -16,7 +16,20 @@ uses
   cxLookAndFeels, cxLookAndFeelPainters, dxRibbonSkins, dxSkinsCore,
   dxSkinOffice2013DarkGray, dxSkinsdxRibbonPainter,
   dxRibbonCustomizationForm, dxSkinsdxBarPainter, ImgList, dxBar,
-  cxClasses, dxRibbon, StdActns, AppEvnts;
+  cxClasses, dxRibbon, StdActns, AppEvnts, dxSkinBlack, dxSkinBlue,
+  dxSkinBlueprint, dxSkinCaramel, dxSkinCoffee, dxSkinDarkRoom,
+  dxSkinDarkSide, dxSkinDevExpressDarkStyle, dxSkinDevExpressStyle,
+  dxSkinFoggy, dxSkinGlassOceans, dxSkinHighContrast, dxSkiniMaginary,
+  dxSkinLilian, dxSkinLiquidSky, dxSkinLondonLiquidSky, dxSkinMcSkin,
+  dxSkinMetropolis, dxSkinMetropolisDark, dxSkinMoneyTwins,
+  dxSkinOffice2007Black, dxSkinOffice2007Blue, dxSkinOffice2007Green,
+  dxSkinOffice2007Pink, dxSkinOffice2007Silver, dxSkinOffice2010Black,
+  dxSkinOffice2010Blue, dxSkinOffice2010Silver, dxSkinOffice2013LightGray,
+  dxSkinOffice2013White, dxSkinPumpkin, dxSkinSeven, dxSkinSevenClassic,
+  dxSkinSharp, dxSkinSharpPlus, dxSkinSilver, dxSkinSpringTime,
+  dxSkinStardust, dxSkinSummer2008, dxSkinTheAsphaltWorld,
+  dxSkinsDefaultPainters, dxSkinValentine, dxSkinVS2010, dxSkinWhiteprint,
+  dxSkinXmas2008Blue;
 
 type
   TMainForm = class(TBaseForm)
@@ -42,7 +55,6 @@ type
     btn6: TdxBarButton;
     apeMain: TApplicationEvents;
     procedure actAboutExecute(Sender: TObject);
-    procedure FormClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
   private
     procedure ShowAboutForm;
@@ -58,7 +70,7 @@ var
 implementation
 
 uses
-  AboutFormUnit, DevExpressDataUnit, BaseChildFormUnit, JsonObjectSerilizerUnit, OptionsUnit;
+  AboutFormUnit, DevExpressDataUnit, BaseChildFormUnit;
 
 {$R *.dfm}
 
@@ -66,26 +78,6 @@ procedure TMainForm.actAboutExecute(Sender: TObject);
 begin
   inherited;
   ShowAboutForm();
-end;
-
-procedure TMainForm.FormClick(Sender: TObject);
-var
-  vCs: string;
-  vOptions: TOptions;
-begin
-  inherited;
-  vOptions := TOptions.Create;
-  with TJsonObjectSerilizer.Create do
-  begin
-//    vOptions.Names.Add('имя 1');
-//    vOptions.Names.Add('имя 2');
-//    vOptions.ObjList.Add(TItem.Create);
-//    vOptions.ObjList.Add(TItem.Create);
-//    SaveObjectStateToFile('c:\temp\1.json', vOptions);
-    LoadObjectStateFromFile('c:\temp\1.json', vOptions);
-    if vOptions.ObjList.Count = 0 then
-      ShowMessage('111');
-  end;
 end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
