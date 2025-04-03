@@ -7,7 +7,9 @@ inherited MainForm: TMainForm
   Color = clAppWorkSpace
   FormStyle = fsMDIForm
   WindowState = wsMaximized
+  OnClick = FormClick
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 19
   object ribMain: TdxRibbon [0]

@@ -26,7 +26,7 @@ type
     /// </returns>
     /// <param name="ASource"> (string) исходная строка</param>
     /// <param name="APassword"> (string) пароль</param>
-    class function EncryptString(ASource, APassword: string): string;
+    function EncryptString(ASource, APassword: string): string;
     /// <summary>TCryptoService.DecryptString
     /// расшифровать строку
     /// </summary>
@@ -34,15 +34,30 @@ type
     /// </returns>
     /// <param name="ASource"> (string) зашифрованная строка</param>
     /// <param name="APassword"> (string) пароль</param>
-    class function DecryptString(ASource, APassword: string): string;
+    function DecryptString(ASource, APassword: string): string;
   end;
+
+  /// <summary>procedure CryptoService
+  /// Синглтон службы TCryptoService
+  /// </summary>
+  /// <returns> TCryptoService
+  /// </returns>
+  function CryptoService: TCryptoService;
 
 implementation
 
 uses
   DCPblowfish, DCPsha512, DCPcrypt2;
 
-class function TCryptoService.DecryptString(ASource, APassword: string): string;
+var
+  FSingleton: TCryptoService;
+
+  function CryptoService: TCryptoService;
+  begin
+    Result := FSingleton;
+  end;
+
+function TCryptoService.DecryptString(ASource, APassword: string): string;
 var
   vChipher: TDCP_blowfish;
 begin
@@ -56,7 +71,7 @@ begin
   end;
 end;
 
-class function TCryptoService.EncryptString(ASource, APassword: string): string;
+function TCryptoService.EncryptString(ASource, APassword: string): string;
 var
   vChipher: TDCP_blowfish;
 begin
@@ -70,5 +85,8 @@ begin
   end;
 end;
 
-
+initialization
+  FSingleton := TCryptoService.Create;
+finalization
+  FreeAndNil(FSingleton);
 end.

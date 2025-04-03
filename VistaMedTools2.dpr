@@ -11,7 +11,9 @@ uses
   CryptoServiceUnit in 'CryptoServiceUnit.pas',
   MainFormUnit in 'MainFormUnit.pas' {MainForm},
   BaseChildFormUnit in 'BaseChildFormUnit.pas' {BaseChildForm},
-  DJson in 'DJson.pas';
+  DJson in 'DJson.pas',
+  JsonSerializerUnit in 'JsonSerializerUnit.pas',
+  OptionsUnit in 'OptionsUnit.pas';
 
 {$R *.res}
 
